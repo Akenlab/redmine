@@ -561,13 +561,21 @@ class MailHandler < ActionMailer::Base
 
   # Removes the email body of text after the truncation configurations.
   def cleanup_body(body)
-    delimiters = Setting.mail_handler_body_delimiters.to_s.split(/[\r\n]+/).reject(&:blank?).map {|s| Regexp.escape(s)}
+    delimiters = Setting.mail_handler_body_delimiters.to_s.split(/[\r\n]+/).reject(&:blank?)
     unless delimiters.empty?
-      regex = Regexp.new("^[> ]*(#{ delimiters.join('|') })\s*[\r\n].*", Regexp::MULTILINE)
-      body = body.gsub(regex, '')
+        # Combine all delimiters into one regex
+         regex = Regexp.new("^[> ]*(#{ delimiters.join('|') })")
+        # If the regex matches a line
+          regex.match(body) { |m|
+                             # Delete the matched line and everything after it
+                              body = body[0 ... m.begin(0)]
+                            }
     end
     body.strip
   end
+
+
+
 
   def find_assignee_from_keyword(keyword, issue)
     Principal.detect_by_keyword(issue.assignable_users, keyword)
